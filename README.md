@@ -1,8 +1,10 @@
 # http-multicaster
 
+## Description
 Le service fonctionne comme un proxy minimaliste.
 Il accèpte des requêtes HTTP et les reproduit sur un ou plusieurs backends.
 
+## Configuration
 Le service se configure via des variables d'environnement:
 
 - BACKENDS: liste des backends (au format IP:PORT) séparés par des ',' sur lesquels diffuser la requête d'origine. 
@@ -21,3 +23,6 @@ Un exemple de fichier de définition du service est disponible dans les sources.
 
 Le service effectue les requêtes vers les backends en parallèle et génère un rapport en réponse à la requête d'origine.
 
+## Compilation
+
+    CGO_ENABLE=0 go build
