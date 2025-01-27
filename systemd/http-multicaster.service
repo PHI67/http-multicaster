@@ -1,0 +1,18 @@
+[Unit]
+Description=Simple proxy to multicast http requests
+After=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+Environment=BACKENDS=10.0.1.10:3128,10.0.1.11:3129
+Environment=LISTEN=127.0.0.1:8200
+ExecStart=/usr/local/bin/http-multicaster 
+
+Restart=on-failure
+
+
+[Install]
+WantedBy=multi-user.target
+
