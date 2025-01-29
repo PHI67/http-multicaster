@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
-
+  "time"
 	"log"
 	"net/http"
 	"os"
@@ -111,6 +111,8 @@ func main() {
 	if len(listenAddress) == 0 {
 		listenAddress = ":8080"
 	}
+  http.DefaultClient.Timeout = 10 * time.Second
+
 	if len(backendsStr) == 0 {
 		log.Println("BACKENDS environment var not defined or empty (BACKENDS=IP:PORT,IP:PORT)")
 		log.Println("Running as debugger")
