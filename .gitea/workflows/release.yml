@@ -6,8 +6,8 @@ name: Go
 on:
   push:
     tags:
-      - v0.*
-      - v1.*
+      - 'v0.*'
+      - 'v1.*'
 
 jobs:
 
