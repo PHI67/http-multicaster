@@ -3,21 +3,23 @@ package main
 import (
 	"fmt"
 	"io"
-  "time"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 var backends []string
+
 func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend string, req *http.Request, responses chan<- int) {
 	defer wg.Done()
 
 	/* Recreate the request with same Method, path,query and Body, but to the specified backend */
 
-  forwardReqStr := fmt.Sprintf("http://%s%s",backend,req.RequestURI)
+	forwardReqStr := fmt.Sprintf("http://%s%s", backend, req.RequestURI)
 	forwardReq, err := http.NewRequest(req.Method, forwardReqStr, req.Body)
 	if err != nil {
 		log.Printf("Error creating request for %s: %v", backend, err)
@@ -35,14 +37,13 @@ func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend st
 	resp, err := client.Do(forwardReq)
 	if err != nil {
 		log.Printf("Error forwarding to %s: %v", backend, err)
-    if os.IsTimeout(err) {
-      responses <- 504
-    }
+		if os.IsTimeout(err) {
+			responses <- 504
+		}
 		responses <- 503 // Service unavailable. Probably backend is down.
 		return
 	}
 	defer resp.Body.Close()
-
 
 	// Read response body
 	_, err = io.ReadAll(resp.Body)
@@ -72,14 +73,14 @@ func handler(w http.ResponseWriter, req *http.Request) {
 	wg.Wait()
 	close(responses)
 
-  statusCode := http.StatusOK
+	statusCode := http.StatusOK
 	for response := range responses {
-    if response >= 400 && response != 503 {
-      // 503 = backend down: don't catch as an error
-      statusCode = response
-    }
-  } 
-  w.WriteHeader(statusCode)
+		if response >= 400 && response != 503 {
+			// 503 = backend down: don't catch as an error
+			statusCode = response
+		}
+	}
+	w.WriteHeader(statusCode)
 	for response := range responses {
 		fmt.Fprintf(w, "%d\n", response)
 	}
@@ -91,7 +92,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
 func debugHandler(w http.ResponseWriter, req *http.Request) {
 	backend := "127.0.0.1:8080"
 	/* Recreate the request with same Method, path,query and Body, but to the specified backend */
-  forwardReqStr := fmt.Sprintf("http://%s%s",backend,req.RequestURI)
+	forwardReqStr := fmt.Sprintf("http://%s%s", backend, req.RequestURI)
 	forwardReq, err := http.NewRequest(req.Method, forwardReqStr, req.Body)
 	if err != nil {
 		log.Printf("Error creating request for %s: %v", backend, err)
@@ -110,7 +111,16 @@ func main() {
 	if len(listenAddress) == 0 {
 		listenAddress = ":8080"
 	}
-  http.DefaultClient.Timeout = 10 * time.Second
+	clientTimeOutStr := os.Getenv("HTTP_CLIENT_TIMEOUT")
+	// Default value for http client timeout 10s
+	http.DefaultClient.Timeout = 10 * time.Second
+	if len(clientTimeOutStr) > 0 {
+		clientTimeOut, err := strconv.Atoi(clientTimeOutStr)
+		if err == nil {
+			http.DefaultClient.Timeout = time.Duration(clientTimeOut) * time.Millisecond
+		}
+	}
+	http.DefaultClient.Timeout = 10 * time.Second
 
 	if len(backendsStr) == 0 {
 		log.Println("BACKENDS environment var not defined or empty (BACKENDS=IP:PORT,IP:PORT)")
@@ -120,7 +130,7 @@ func main() {
 		backends = strings.Split(backendsStr, ",")
 		http.HandleFunc("/", handler)
 	}
-	fmt.Printf("Starting server on %s\n",listenAddress)
+	fmt.Printf("Starting server on %s\n", listenAddress)
 	if err := http.ListenAndServe(listenAddress, nil); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
