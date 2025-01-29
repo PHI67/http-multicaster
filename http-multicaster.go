@@ -12,8 +12,7 @@ import (
 )
 
 var backends []string
-
-func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend string, req *http.Request, responses chan<- string) {
+func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend string, req *http.Request, responses chan<- int) {
 	defer wg.Done()
 
 	/* Recreate the request with same Method, path,query and Body, but to the specified backend */
@@ -22,7 +21,8 @@ func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend st
 	forwardReq, err := http.NewRequest(req.Method, forwardReqStr, req.Body)
 	if err != nil {
 		log.Printf("Error creating request for %s: %v", backend, err)
-		responses <- fmt.Sprintf("Failed: %v", err)
+
+		responses <- 500 // Internal server error
 		return
 	}
 
@@ -35,7 +35,7 @@ func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend st
 	resp, err := client.Do(forwardReq)
 	if err != nil {
 		log.Printf("Error forwarding to %s: %v", backend, err)
-		responses <- fmt.Sprintf("%s failed: %v", backend, err)
+		responses <- 502 // bad gateway
 		return
 	}
 	defer resp.Body.Close()
@@ -45,16 +45,16 @@ func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend st
 	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("Error reading response from %s: %v", backend, err)
-		responses <- fmt.Sprintf("%s failed: %v", backend, err)
+		responses <- 502
 		return
 	}
 
   if resp.StatusCode >= 400 {
-	  responses <- fmt.Sprintf("%s failed %d", backend, resp.StatusCode)
+	  responses <- resp.StatusCode
     return
   } 
 	// Ajouter la réponse dans le canal
-	responses <- fmt.Sprintf("%s succeeded %d", backend, resp.StatusCode)
+	responses <- 200
 }
 
 /*
@@ -64,7 +64,7 @@ func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend st
 func handler(w http.ResponseWriter, req *http.Request) {
 	client := &http.Client{}
 	var wg sync.WaitGroup
-	responses := make(chan string, len(backends))
+	responses := make(chan int, len(backends))
 
 	for _, backend := range backends {
 		wg.Add(1)
@@ -74,8 +74,15 @@ func handler(w http.ResponseWriter, req *http.Request) {
 	wg.Wait()
 	close(responses)
 
+  statusCode := http.StatusInternalServerError
 	for response := range responses {
-		fmt.Fprintf(w, "%s\n", response)
+    if response == 200 {
+      statusCode = http.StatusOK
+    }
+  } 
+  w.WriteHeader(statusCode)
+	for response := range responses {
+		fmt.Fprintf(w, "%d\n", response)
 	}
 }
 
