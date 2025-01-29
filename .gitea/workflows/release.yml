@@ -46,6 +46,6 @@ jobs:
         GITEA_TOKEN: ${{ secrets.GITEATOKEN }}  # Ensure you have a GITEA_TOKEN secret set up
       run: |
         curl -X POST \
-          -H "Authorization: token $GITEA_TOKEN" \
+          -H "Authorization: token $GITEATOKEN" \
           -F "data=@./dist/http-multicaster" \
           "https://git.zd-est.pref.gouv.fr/api/packages/sgami-est/generic/http-multicaster/${{ github.ref_name }}/http-multicaster"
