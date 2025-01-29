@@ -5,9 +5,9 @@ name: Go
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags:
+      - v0.*
+      - v1.*
 
 jobs:
 
@@ -24,4 +24,7 @@ jobs:
     - name: Build
       run: CGO_ENABLED=0 go build -v ./...
     
-
+    - name: Publish binary
+      run: curl --user AnsibleContainerOCIPublisher:y${{ secrets.ANSIBLECONTAINEROCIPUBLISHERPASSWORD }} \
+     --upload-file ./http-multicaster \
+     https://git.zd-est.pref.gouv.fr/api/packages/SGAMI-EST/generic/http-multicaster/${{ gitea.ref_name }}/http-multicaster-amd64
