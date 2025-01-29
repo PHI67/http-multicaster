@@ -35,7 +35,10 @@ func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend st
 	resp, err := client.Do(forwardReq)
 	if err != nil {
 		log.Printf("Error forwarding to %s: %v", backend, err)
-		responses <- 502 // bad gateway
+    if os.IsTimeout(err) {
+      responses <- 504
+    }
+		responses <- 503 // Service unavailable. Probably backend is down.
 		return
 	}
 	defer resp.Body.Close()
@@ -49,12 +52,7 @@ func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend st
 		return
 	}
 
-  if resp.StatusCode >= 400 {
-	  responses <- resp.StatusCode
-    return
-  } 
-	// Ajouter la réponse dans le canal
-	responses <- 200
+	responses <- resp.StatusCode
 }
 
 /*
@@ -74,10 +72,11 @@ func handler(w http.ResponseWriter, req *http.Request) {
 	wg.Wait()
 	close(responses)
 
-  statusCode := http.StatusInternalServerError
+  statusCode := http.StatusOK
 	for response := range responses {
-    if response == 200 {
-      statusCode = http.StatusOK
+    if response >= 400 && response != 503 {
+      // 503 = backend down: don't catch as an error
+      statusCode = response
     }
   } 
   w.WriteHeader(statusCode)
