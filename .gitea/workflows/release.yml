@@ -5,7 +5,9 @@ name: Go
 
 on:
   push:
-    tags: ["v0.*","v1.*"]
+    tags: 
+      - v0.*
+      - v1.*
 
 jobs:
 
