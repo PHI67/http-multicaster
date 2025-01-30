@@ -21,6 +21,8 @@ jobs:
         go-version: '1.23.2'  # Specify the Go version
 
     - name: Build Go binary
+      env:
+        CGO_ENABLED: 0 
       run: |
         go build
 
