@@ -26,26 +26,6 @@ jobs:
       run: |
         go build
 
-    - name: Upload binary as artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: http-multicaster
-        path: http-multicaster
-
-  publish:
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-    - name: Download binary artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: http-multicaster
-        path: ./dist
-
-    - name: Display structure of downloaded files
-      run: ls -R ./dist
-
     - name: Publish to Gitea Generic Package Repository
       env:
         GITEA_TOKEN: ${{ secrets.GITEATOKEN }}  # Ensure you have a GITEA_TOKEN secret set up
