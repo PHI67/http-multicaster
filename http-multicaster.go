@@ -14,7 +14,12 @@ import (
 
 var backends []string
 
-func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend string, req *http.Request, responses chan<- int) {
+type BackendResponse struct {
+	Code    int
+	Backend string
+}
+
+func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend string, req *http.Request, responses chan<- BackendResponse) {
 	defer wg.Done()
 
 	/* Recreate the request with same Method, path,query and Body, but to the specified backend */
@@ -24,7 +29,7 @@ func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend st
 	if err != nil {
 		log.Printf("Error creating request for %s: %v", backend, err)
 
-		responses <- 500 // Internal server error
+		responses <- BackendResponse{500, backend} // Internal server error
 		return
 	}
 
@@ -38,9 +43,9 @@ func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend st
 	if err != nil {
 		log.Printf("Error forwarding to %s: %v", backend, err)
 		if os.IsTimeout(err) {
-			responses <- 504
+			responses <- BackendResponse{504, backend}
 		}
-		responses <- 503 // Service unavailable. Probably backend is down.
+		responses <- BackendResponse{503, backend} // Service unavailable. Probably backend is down.
 		return
 	}
 	defer resp.Body.Close()
@@ -49,11 +54,11 @@ func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend st
 	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("Error reading response from %s: %v", backend, err)
-		responses <- 502
+		responses <- BackendResponse{502, backend}
 		return
 	}
 
-	responses <- resp.StatusCode
+	responses <- BackendResponse{resp.StatusCode, backend}
 }
 
 /*
@@ -63,7 +68,7 @@ func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend st
 func handler(w http.ResponseWriter, req *http.Request) {
 	client := &http.Client{}
 	var wg sync.WaitGroup
-	responses := make(chan int, len(backends))
+	responses := make(chan BackendResponse, len(backends))
 
 	for _, backend := range backends {
 		wg.Add(1)
@@ -75,14 +80,15 @@ func handler(w http.ResponseWriter, req *http.Request) {
 
 	statusCode := http.StatusOK
 	for response := range responses {
-		if response >= 400 && response != 503 {
+		if response.Code >= 400 && response.Code != 503 {
 			// 503 = backend down: don't catch as an error
-			statusCode = response
+			statusCode = response.Code
 		}
 	}
 	w.WriteHeader(statusCode)
+
 	for response := range responses {
-		fmt.Fprintf(w, "%d\n", response)
+		w.Header().Add("X-Multicaster-Backend-Response", fmt.Sprintf("%s=%d", response.Backend, response.Code))
 	}
 }
 

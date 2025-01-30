@@ -48,4 +48,4 @@ jobs:
         curl -X PUT \
           -H "Authorization: token $GITEA_TOKEN" \
           -F "data=@./dist/http-multicaster" \
-          "https://git.zd-est.pref.gouv.fr/api/packages/sgami-est/generic/http-multicaster/${{ github.ref_name }}/http-multicaster"
+          "https://git.zd-est.pref.gouv.fr/api/packages/sgami-est/generic/http-multicaster/${{ github.ref_name }}/http-multicaster-${{ github.ref_name }}"
