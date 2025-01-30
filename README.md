@@ -19,7 +19,7 @@ Le service se configure via des variables d'environnement:
 
         LISTEN=10.0.1.80:8080
 
-- HTTP_CLIENT_TIMEOUT: timeout en milliseconde pour les appel HTTP vers les backends.
+- HTTP_CLIENT_TIMEOUT: timeout en millisecondes pour les appels HTTP vers les backends.
 
     Exemple:
 
