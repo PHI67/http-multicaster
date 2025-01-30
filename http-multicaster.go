@@ -84,12 +84,10 @@ func handler(w http.ResponseWriter, req *http.Request) {
 			// 503 = backend down: don't catch as an error
 			statusCode = response.Code
 		}
+		w.Header().Add("X-Multicaster-Status", fmt.Sprintf("%d@%s", response.Code, response.Backend))
 	}
-	w.WriteHeader(statusCode)
 
-	for response := range responses {
-		w.Header().Add("X-Multicaster-Backend-Response", fmt.Sprintf("%s=%d", response.Backend, response.Code))
-	}
+	w.WriteHeader(statusCode)
 }
 
 /*
