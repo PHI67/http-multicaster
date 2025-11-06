@@ -23,6 +23,7 @@ jobs:
         CGO_ENABLED: 0 
       run: |
         go build
+        tar -czf /tmp/http-multicaster.tar.gz http-multicaster systemd
 
     - name: Publish to Gitea Generic Package Repository
       env:
@@ -30,5 +31,5 @@ jobs:
       run: |
         curl -X PUT \
           -H "Authorization: token $GITEA_TOKEN" \
-          -F "data=@./http-multicaster" \
-          "https://git.zd-est.pref.gouv.fr/api/packages/sgami-est/generic/http-multicaster/${{ github.ref_name }}/http-multicaster-${{ github.ref_name }}"
+          -F "data=@/tmp/http-multicaster.tar.gz" \
+          "https://git.zd-est.pref.gouv.fr/api/packages/sgami-est/generic/http-multicaster/${{ github.ref_name }}/http-multicaster-${{ github.ref_name }}.tar.gz"
