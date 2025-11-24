@@ -105,8 +105,20 @@ func debugHandler(w http.ResponseWriter, req *http.Request) {
 	forwardReq.Host = req.Host
 	forwardReq.Header = req.Header.Clone()
 
-	fmt.Printf("%#v\n", req)
-	fmt.Printf("%#v\n", forwardReq)
+	fmt.Println("REQUEST")
+	fmt.Println("uri:", req.RequestURI)
+	fmt.Println("verb", req.Method)
+	for k, v:= range req.Header {
+		fmt.Println(k,v)
+	}
+	fmt.Println("FORWARD")
+	fmt.Println("uri:", forwardReq.RequestURI)
+	fmt.Println("verb", forwardReq.Method)
+	for k, v:= range forwardReq.Header {
+		fmt.Println(k,v)
+	}
+
+
 
 }
 func main() {
