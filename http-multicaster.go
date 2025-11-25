@@ -62,6 +62,41 @@ func forwardRequestToBackend(wg *sync.WaitGroup, client *http.Client, backend st
 }
 
 /*
+* Just print incoming request elements
+ */
+func debugHandler(w http.ResponseWriter, req *http.Request) {
+	backend := "127.0.0.1:8080"
+	/* Recreate the request with same Method, path,query and Body, but to the specified backend */
+	forwardReqStr := fmt.Sprintf("http://%s%s", backend, req.RequestURI)
+	forwardReq, err := http.NewRequest(req.Method, forwardReqStr, req.Body)
+	if err != nil {
+		log.Printf("Error creating request for %s: %v", backend, err)
+		return
+	}
+	forwardReq.Host = req.Host
+	forwardReq.Header = req.Header.Clone()
+
+	fmt.Println("REQUEST")
+	fmt.Println("host:", req.Host)
+	fmt.Println("url:", req.URL)
+	fmt.Println("uri:", req.RequestURI)
+	fmt.Println("verb:", req.Method)
+	for k, v:= range req.Header {
+		fmt.Println(k,v)
+	}
+	fmt.Println("FORWARD")
+	fmt.Println("host:", req.Host)
+	fmt.Println("url:", req.URL)
+	fmt.Println("uri:", forwardReq.RequestURI)
+	fmt.Println("verb:", forwardReq.Method)
+	for k, v:= range forwardReq.Header {
+		fmt.Println(k,v)
+	}
+  fmt.Println(forwardReq)
+
+}
+
+/*
 * Take incoming request and make a new request for each backend in a new goroutine.
 * In response to origin request send a report sucess or failure with HTTP code.
  */
@@ -90,37 +125,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(statusCode)
 }
 
-/*
-* Just print incoming request elements
- */
-func debugHandler(w http.ResponseWriter, req *http.Request) {
-	backend := "127.0.0.1:8080"
-	/* Recreate the request with same Method, path,query and Body, but to the specified backend */
-	forwardReqStr := fmt.Sprintf("http://%s%s", backend, req.RequestURI)
-	forwardReq, err := http.NewRequest(req.Method, forwardReqStr, req.Body)
-	if err != nil {
-		log.Printf("Error creating request for %s: %v", backend, err)
-		return
-	}
-	forwardReq.Host = req.Host
-	forwardReq.Header = req.Header.Clone()
 
-	fmt.Println("REQUEST")
-	fmt.Println("uri:", req.RequestURI)
-	fmt.Println("verb", req.Method)
-	for k, v:= range req.Header {
-		fmt.Println(k,v)
-	}
-	fmt.Println("FORWARD")
-	fmt.Println("uri:", forwardReq.RequestURI)
-	fmt.Println("verb", forwardReq.Method)
-	for k, v:= range forwardReq.Header {
-		fmt.Println(k,v)
-	}
-
-
-
-}
 func main() {
 	backendsStr := os.Getenv("BACKENDS")
 	listenAddress := os.Getenv("LISTEN")
